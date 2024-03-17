@@ -1,0 +1,325 @@
+
+
+ Undiscounted Sales By Year
+
+
+ 
+SELECT D.[Year] AS Year, SUM(S.[list_price]*S.[quantity]) AS Sales_By_Year
+FROM FactSales S, DimDate D
+WHERE S.[Order_Date_Key] = D.[Date_Key]
+GROUP BY ROLLUP (D.[Year]);
+
+
+
+ +--------+-----------------+
+|   Year |   Sales_By_Year |
++========+=================+
+|   2016 |     2.64965e+06 |
++--------+-----------------+
+|   2017 |     3.73511e+06 |
++--------+-----------------+
+|   2018 |     1.05325e+06 |
++--------+-----------------+
+|    nan |     7.43801e+06 |
++--------+-----------------+
+
+
+ 1. Total Quantity by Brand 'Surly'
+
+
+ 
+    SELECT SUM(FactSales.quantity) AS Total_Quantity
+    FROM FactSales
+    JOIN DimProducts ON FactSales.product_id = DimProducts.Product_id
+    WHERE DimProducts.brand_name = 'Surly';
+
+
+ +------------------+
+|   Total_Quantity |
++==================+
+|              838 |
++------------------+
+
+
+ 2. Avg Discount for product category Mountain Bikes for customer living in state NY
+
+
+ 
+    SELECT ROUND(AVG(FactSales.discount), 2) AS Average_Discount
+    FROM FactSales
+    JOIN DimProducts ON FactSales.product_id = DimProducts.Product_id
+    JOIN DimCustomers ON FactSales.customer_id = DimCustomers.Customer_id
+    WHERE DimProducts.category_name = 'Mountain Bikes' AND DimCustomers.state = 'NY';
+
+
+ +--------------------+
+|   Average_Discount |
++====================+
+|               0.11 |
++--------------------+
+
+
+ 3. Find the total undiscounted sales by product category
+
+
+ 
+    SELECT COALESCE(Category_Name, 'All Categories') AS Category, FORMAT(SUM(List_Price * Quantity), 'C', 'en-US') AS Total_Undiscounted_Sales
+    FROM FactSales FS
+    JOIN DimProducts DP ON FS.product_id = DP.Product_id
+    GROUP BY ROLLUP(Category_Name)
+    ORDER BY Category DESC;
+
+
+ +---------------------+----------------------------+
+| Category            | Total_Undiscounted_Sales   |
++=====================+============================+
+| Road Bikes          | $1,474,093.65              |
++---------------------+----------------------------+
+| Mountain Bikes      | $2,779,955.07              |
++---------------------+----------------------------+
+| Electric Bikes      | $817,077.48                |
++---------------------+----------------------------+
+| Cyclocross Bicycles | $723,109.80                |
++---------------------+----------------------------+
+| Cruisers Bicycles   | $966,455.86                |
++---------------------+----------------------------+
+| Comfort Bicycles    | $385,688.67                |
++---------------------+----------------------------+
+| Children Bicycles   | $291,629.53                |
++---------------------+----------------------------+
+| All Categories      | $7,438,010.06              |
++---------------------+----------------------------+
+
+
+ 4. Drill Down Display the total undiscounted sales by product category for each year
+
+
+ 
+    SELECT 
+        COALESCE(dp.Category_name, 'All Categories') AS Category_name, 
+        dp.model_year, 
+        FORMAT(SUM(fs.List_Price * fs.Quantity), 'C', 'en-US') AS Total_Undiscounted_Sales
+    FROM 
+        FactSales fs
+    JOIN 
+        DimProducts dp ON fs.product_id = dp.product_id
+    JOIN 
+        DimDate dd ON fs.Order_Date_Key = dd.Date_Key
+    GROUP BY 
+        dp.Category_name, dp.model_year
+    WITH ROLLUP
+    ORDER BY 
+        CASE 
+            WHEN dp.Category_name IS NULL THEN ''
+            ELSE dp.Category_name 
+        END ASC,
+        dp.model_year DESC;
+
+
+ +---------------------+--------------+----------------------------+
+| Category_name       |   model_year | Total_Undiscounted_Sales   |
++=====================+==============+============================+
+| All Categories      |          nan | $7,438,010.06              |
++---------------------+--------------+----------------------------+
+| Children Bicycles   |         2018 | $17,489.33                 |
++---------------------+--------------+----------------------------+
+| Children Bicycles   |         2017 | $153,754.49                |
++---------------------+--------------+----------------------------+
+| Children Bicycles   |         2016 | $120,385.71                |
++---------------------+--------------+----------------------------+
+| Children Bicycles   |          nan | $291,629.53                |
++---------------------+--------------+----------------------------+
+| Comfort Bicycles    |         2018 | $19,699.74                 |
++---------------------+--------------+----------------------------+
+| Comfort Bicycles    |         2017 | $143,992.98                |
++---------------------+--------------+----------------------------+
+| Comfort Bicycles    |         2016 | $221,995.95                |
++---------------------+--------------+----------------------------+
+| Comfort Bicycles    |          nan | $385,688.67                |
++---------------------+--------------+----------------------------+
+| Cruisers Bicycles   |         2018 | $111,328.69                |
++---------------------+--------------+----------------------------+
+| Cruisers Bicycles   |         2017 | $312,325.36                |
++---------------------+--------------+----------------------------+
+| Cruisers Bicycles   |         2016 | $542,801.81                |
++---------------------+--------------+----------------------------+
+| Cruisers Bicycles   |          nan | $966,455.86                |
++---------------------+--------------+----------------------------+
+| Cyclocross Bicycles |         2018 | $30,095.92                 |
++---------------------+--------------+----------------------------+
+| Cyclocross Bicycles |         2017 | $227,499.35                |
++---------------------+--------------+----------------------------+
+| Cyclocross Bicycles |         2016 | $465,514.53                |
++---------------------+--------------+----------------------------+
+| Cyclocross Bicycles |          nan | $723,109.80                |
++---------------------+--------------+----------------------------+
+| Electric Bikes      |         2018 | $172,399.53                |
++---------------------+--------------+----------------------------+
+| Electric Bikes      |         2017 | $218,679.37                |
++---------------------+--------------+----------------------------+
+| Electric Bikes      |         2016 | $425,998.58                |
++---------------------+--------------+----------------------------+
+| Electric Bikes      |          nan | $817,077.48                |
++---------------------+--------------+----------------------------+
+| Mountain Bikes      |         2018 | $142,395.31                |
++---------------------+--------------+----------------------------+
+| Mountain Bikes      |         2017 | $962,954.12                |
++---------------------+--------------+----------------------------+
+| Mountain Bikes      |         2016 | $1,674,605.64              |
++---------------------+--------------+----------------------------+
+| Mountain Bikes      |          nan | $2,779,955.07              |
++---------------------+--------------+----------------------------+
+| Road Bikes          |         2018 | $267,965.17                |
++---------------------+--------------+----------------------------+
+| Road Bikes          |         2017 | $1,206,128.48              |
++---------------------+--------------+----------------------------+
+| Road Bikes          |          nan | $1,474,093.65              |
++---------------------+--------------+----------------------------+
+
+
+ 5. Total Sales by Product Category for Every Combination
+
+
+ 
+    SELECT 
+        COALESCE(dp.Category_name, 'All Categories') AS Category_name, 
+        COALESCE(dp.brand_name, 'All Brands') AS Brand_name, 
+        FORMAT(SUM(fs.List_Price * fs.Quantity), 'C', 'en-US') AS Total_Undiscounted_Sales
+    FROM 
+        FactSales fs
+    JOIN 
+        DimProducts dp ON fs.product_id = dp.product_id
+    GROUP BY CUBE(dp.Category_name, dp.brand_name)
+    ORDER BY 
+        CASE 
+            WHEN dp.Category_name IS NULL THEN 'AAA' 
+            ELSE dp.Category_name 
+        END ASC,
+        COALESCE(dp.brand_name, 'All Brands') DESC;
+
+
+ +---------------------+--------------+----------------------------+
+| Category_name       | Brand_name   | Total_Undiscounted_Sales   |
++=====================+==============+============================+
+| All Categories      | Trek         | $4,369,534.36              |
++---------------------+--------------+----------------------------+
+| All Categories      | Surly        | $973,402.30                |
++---------------------+--------------+----------------------------+
+| All Categories      | Sun Bicycles | $346,782.30                |
++---------------------+--------------+----------------------------+
+| All Categories      | Strider      | $2,249.87                  |
++---------------------+--------------+----------------------------+
+| All Categories      | Ritchey      | $87,748.83                 |
++---------------------+--------------+----------------------------+
+| All Categories      | Pure Cycles  | $159,160.00                |
++---------------------+--------------+----------------------------+
+| All Categories      | Heller       | $178,118.75                |
++---------------------+--------------+----------------------------+
+| All Categories      | Haro         | $183,397.03                |
++---------------------+--------------+----------------------------+
+| All Categories      | Electra      | $1,137,616.62              |
++---------------------+--------------+----------------------------+
+| All Categories      | All Brands   | $7,438,010.06              |
++---------------------+--------------+----------------------------+
+| Children Bicycles   | Trek         | $45,637.94                 |
++---------------------+--------------+----------------------------+
+| Children Bicycles   | Sun Bicycles | $2,639.76                  |
++---------------------+--------------+----------------------------+
+| Children Bicycles   | Strider      | $2,249.87                  |
++---------------------+--------------+----------------------------+
+| Children Bicycles   | Haro         | $30,398.76                 |
++---------------------+--------------+----------------------------+
+| Children Bicycles   | Electra      | $210,703.20                |
++---------------------+--------------+----------------------------+
+| Children Bicycles   | All Brands   | $291,629.53                |
++---------------------+--------------+----------------------------+
+| Comfort Bicycles    | Sun Bicycles | $125,373.36                |
++---------------------+--------------+----------------------------+
+| Comfort Bicycles    | Electra      | $260,315.31                |
++---------------------+--------------+----------------------------+
+| Comfort Bicycles    | All Brands   | $385,688.67                |
++---------------------+--------------+----------------------------+
+| Cruisers Bicycles   | Sun Bicycles | $155,097.70                |
++---------------------+--------------+----------------------------+
+| Cruisers Bicycles   | Pure Cycles  | $159,160.00                |
++---------------------+--------------+----------------------------+
+| Cruisers Bicycles   | Electra      | $652,198.16                |
++---------------------+--------------+----------------------------+
+| Cruisers Bicycles   | All Brands   | $966,455.86                |
++---------------------+--------------+----------------------------+
+| Cyclocross Bicycles | Trek         | $251,399.27                |
++---------------------+--------------+----------------------------+
+| Cyclocross Bicycles | Surly        | $471,710.53                |
++---------------------+--------------+----------------------------+
+| Cyclocross Bicycles | All Brands   | $723,109.80                |
++---------------------+--------------+----------------------------+
+| Electric Bikes      | Trek         | $758,997.81                |
++---------------------+--------------+----------------------------+
+| Electric Bikes      | Sun Bicycles | $43,679.72                 |
++---------------------+--------------+----------------------------+
+| Electric Bikes      | Electra      | $14,399.95                 |
++---------------------+--------------+----------------------------+
+| Electric Bikes      | All Brands   | $817,077.48                |
++---------------------+--------------+----------------------------+
+| Mountain Bikes      | Trek         | $1,905,123.16              |
++---------------------+--------------+----------------------------+
+| Mountain Bikes      | Surly        | $435,974.30                |
++---------------------+--------------+----------------------------+
+| Mountain Bikes      | Sun Bicycles | $19,991.76                 |
++---------------------+--------------+----------------------------+
+| Mountain Bikes      | Ritchey      | $87,748.83                 |
++---------------------+--------------+----------------------------+
+| Mountain Bikes      | Heller       | $178,118.75                |
++---------------------+--------------+----------------------------+
+| Mountain Bikes      | Haro         | $152,998.27                |
++---------------------+--------------+----------------------------+
+| Mountain Bikes      | All Brands   | $2,779,955.07              |
++---------------------+--------------+----------------------------+
+| Road Bikes          | Trek         | $1,408,376.18              |
++---------------------+--------------+----------------------------+
+| Road Bikes          | Surly        | $65,717.47                 |
++---------------------+--------------+----------------------------+
+| Road Bikes          | All Brands   | $1,474,093.65              |
++---------------------+--------------+----------------------------+
+
+
+ 6. Top 10 Cities by Total Discounted Sales
+
+
+ 
+    SELECT TOP 10
+        dc.City,
+        FORMAT(SUM((fs.List_Price - fs.Discount) * fs.Quantity), 'C', 'en-US') AS Total_Discounted_Sales
+    FROM 
+        FactSales fs
+    JOIN 
+        DimCustomers dc ON fs.customer_id = dc.Customer_id
+    GROUP BY 
+        dc.City
+    ORDER BY 
+        SUM((fs.List_Price - fs.Discount) * fs.Quantity) DESC;
+
+
+ +----------------+--------------------------+
+| City           | Total_Discounted_Sales   |
++================+==========================+
+| Mount Vernon   | $117,001.32              |
++----------------+--------------------------+
+| Ballston Spa   | $110,057.46              |
++----------------+--------------------------+
+| Howard Beach   | $104,245.58              |
++----------------+--------------------------+
+| Canyon Country | $88,447.03               |
++----------------+--------------------------+
+| Smithtown      | $85,418.11               |
++----------------+--------------------------+
+| Harlingen      | $85,280.05               |
++----------------+--------------------------+
+| Webster        | $80,732.19               |
++----------------+--------------------------+
+| San Angelo     | $78,228.37               |
++----------------+--------------------------+
+| Astoria        | $77,647.40               |
++----------------+--------------------------+
+| Troy           | $74,763.97               |
++----------------+--------------------------+

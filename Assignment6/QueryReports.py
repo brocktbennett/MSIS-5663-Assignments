@@ -112,5 +112,5 @@ out_file = 'out.txt'
 # Execute each query and output results
 for title, query in queries:
     execute_query_and_write_to_file(title, query, out_file, conn_string_pyodbc)
-
+print("All finished")
 print("All queries have been executed and results written to", out_file)
