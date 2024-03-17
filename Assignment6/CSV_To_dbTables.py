@@ -49,7 +49,6 @@ try:
         df.drop_duplicates(inplace=True)
         df.to_sql(name=tableName, con=conStr, if_exists='append', index=False)
 
-
     # Load the tables from CSV files using sqlalchemy
     csv_to_tables('DimProducts.csv', 'DimProducts', engine)
     csv_to_tables('DimCustomers.csv', 'DimCustomers', engine)
