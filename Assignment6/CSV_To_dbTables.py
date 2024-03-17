@@ -2,42 +2,52 @@ import pandas as pd
 import pyodbc
 import urllib
 from sqlalchemy import create_engine
-#
-conn_string = "Driver={ODBC Driver 17 for SQL Server};Server=SSBDN93JS3\\SQLEXPRESS;Database=MYStoreDW;Trusted_Connection=yes;"
-#conn_string ="Driver={ODBC Driver 17 for SQL Server};Server=stwssbsql01.ad.okstate.edu;Database=MYStoreDW;Trusted_Connection=yes;"
-conn = pyodbc.connect(conn_string)
-cursor = conn.cursor()
-#
-# Execute the stored procedures using pyodbc connection string
-cursor.execute("dbo.Drop_Tables")
-cursor.execute("dbo.Create_Tables")
-cursor.commit()
-cursor.close()
-conn.close()
-#
-#Connection string for sqlalchemy
-connection_string = "Driver={ODBC Driver 17 for SQL Server};Server=SSBDN93JS3\\SQLEXPRESS;Database=MYStoreDW;Trusted_Connection=yes;"
-#connection_string ="Driver={ODBC Driver 17 for SQL Server};Server=stwssbsql01.ad.okstate.edu;Database=MYStoreDW;Trusted_Connection=yes;"
-connection_string = urllib.parse.quote_plus(connection_string)
-connection_string = "mssql+pyodbc:///?odbc_connect=%s" % connection_string
-#
-# Create a sqlalchemy engine
-engine = create_engine(connection_string)
-#
-def csv_to_tables(fileName,tableName,conStr):
-    engine = create_engine(conStr)
-    df = pd.read_csv(fileName)
-    df.to_sql(name=tableName, con=engine, if_exists='append', index=False)
+
+# Modify the connection strings based on your environment
+# pyodbc connection string
+conn_string_pyodbc = "Driver={ODBC Driver 17 for SQL Server};Server=stwssbsql01.ad.okstate.edu;Database=brocbenDW;Trusted_Connection=yes;"
+
+# Construct the SQLAlchemy connection string
+conn_string_sqlalchemy = "mssql+pyodbc:///?odbc_connect=" + urllib.parse.quote_plus(conn_string_pyodbc)
+
+try:
+    # Test the connection using pyodbc
+    conn_pyodbc = pyodbc.connect(conn_string_pyodbc)
+    conn_pyodbc.close()
+    print("Connection with pyodbc established successfully.")
+
+    # Test the connection using sqlalchemy
+    engine = create_engine(conn_string_sqlalchemy)
+    with engine.connect():
+        print("Connection with sqlalchemy established successfully.")
+
+    # If both connections are successful, proceed with executing stored procedures and loading data from CSV files
+    # Establish connection using pyodbc for executing stored procedures
+    conn_pyodbc = pyodbc.connect(conn_string_pyodbc)
+    cursor_pyodbc = conn_pyodbc.cursor()
+
+    # Execute the stored procedures using pyodbc connection
+    cursor_pyodbc.execute("dbo.DROP_TABLES")
+    cursor_pyodbc.execute("dbo.CREATE_TABLES")
+    cursor_pyodbc.commit()
+    cursor_pyodbc.close()
+    conn_pyodbc.close()
+
+    # Create a sqlalchemy engine for loading data from CSV files
+    engine = create_engine(conn_string_sqlalchemy)
+
+    def csv_to_tables(fileName, tableName, conStr):
+        df = pd.read_csv(fileName)
+        df.to_sql(name=tableName, con=conStr, if_exists='append', index=False)
+
+    # Load the tables from CSV files using sqlalchemy
+    csv_to_tables('DimProducts.csv', 'DimProducts', engine)
+    csv_to_tables('DimCustomers.csv', 'DimCustomers', engine)
+    csv_to_tables('DimDate.csv', 'DimDate', engine)
+    csv_to_tables('FactSales.csv', 'FactSales', engine)
+
+    # Close the sqlalchemy engine
     engine.dispose()
-#
-# Load the tables from CSV files
-csv_to_tables('DimProducts.csv','DimProducts',connection_string)
-csv_to_tables('DimCustomers.csv','DimCustomers',connection_string)
-csv_to_tables('DimDate.csv','DimDate',connection_string)
-csv_to_tables('FactSales.csv','FactSales',connection_string)
-#
-# Close the engine
-engine.dispose()
-#
 
-
+except Exception as e:
+    print("An error occurred while establishing the connection:", str(e))
