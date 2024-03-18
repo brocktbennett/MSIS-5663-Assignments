@@ -106,6 +106,11 @@ queries = [
     ORDER BY 
         SUM((fs.List_Price - fs.Discount) * fs.Quantity) DESC;""")
 ]
+    ("7. )
+
+
+
+
 
 out_file = 'out.txt'
 
