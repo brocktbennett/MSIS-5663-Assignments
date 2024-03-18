@@ -56,64 +56,43 @@ queries = [
     ORDER BY Category DESC;"""),
 
     ("4. Drill Down Display the total undiscounted sales by product category for each year", """
-    SELECT 
-        COALESCE(dp.Category_name, 'All Categories') AS Category_name, 
-        dp.model_year, 
-        FORMAT(SUM(fs.List_Price * fs.Quantity), 'C', 'en-US') AS Total_Undiscounted_Sales
-    FROM 
-        FactSales fs
-    JOIN 
-        DimProducts dp ON fs.product_id = dp.product_id
-    JOIN 
-        DimDate dd ON fs.Order_Date_Key = dd.Date_Key
-    GROUP BY 
-        dp.Category_name, dp.model_year
+    SELECT COALESCE(dp.Category_name, 'All Categories') AS Category_name, dp.model_year, FORMAT(SUM(fs.List_Price * fs.Quantity), 'C', 'en-US') AS Total_Undiscounted_Sales
+    FROM FactSales fs
+    JOIN DimProducts dp ON fs.product_id = dp.product_id
+    JOIN DimDate dd ON fs.Order_Date_Key = dd.Date_Key
+    GROUP BY dp.Category_name, dp.model_year
     WITH ROLLUP
-    ORDER BY 
-        CASE 
-            WHEN dp.Category_name IS NULL THEN ''
-            ELSE dp.Category_name 
-        END ASC,
-        dp.model_year DESC;"""),
+    ORDER BY CASE 
+    WHEN dp.Category_name IS NULL THEN ''
+    ELSE dp.Category_name 
+    END ASC, dp.model_year DESC;"""),
 
     ("5. Total Sales by Product Category for Every Combination", """
-    SELECT 
-        COALESCE(dp.Category_name, 'All Categories') AS Category_name, 
-        COALESCE(dp.brand_name, 'All Brands') AS Brand_name, 
-        FORMAT(SUM(fs.List_Price * fs.Quantity), 'C', 'en-US') AS Total_Undiscounted_Sales
-    FROM 
-        FactSales fs
-    JOIN 
-        DimProducts dp ON fs.product_id = dp.product_id
+    SELECT COALESCE(dp.Category_name, 'All Categories') AS Category_name, COALESCE(dp.brand_name, 'All Brands') AS Brand_name, FORMAT(SUM(fs.List_Price * fs.Quantity), 'C', 'en-US') AS Total_Undiscounted_Sales
+    FROM FactSales fs
+    JOIN DimProducts dp ON fs.product_id = dp.product_id
     GROUP BY CUBE(dp.Category_name, dp.brand_name)
-    ORDER BY 
-        CASE 
-            WHEN dp.Category_name IS NULL THEN 'AAA' 
-            ELSE dp.Category_name 
-        END ASC,
-        COALESCE(dp.brand_name, 'All Brands') DESC;"""),
+    ORDER BY CASE 
+    WHEN dp.Category_name IS NULL THEN 'AAA' 
+    ELSE dp.Category_name 
+    END ASC, COALESCE(dp.brand_name, 'All Brands') DESC;"""),
 
     ("6. Top 10 Cities by Total Discounted Sales", """
-    SELECT TOP 10
-        dc.City,
-        FORMAT(SUM((fs.List_Price - fs.Discount) * fs.Quantity), 'C', 'en-US') AS Total_Discounted_Sales
-    FROM 
-        FactSales fs
-    JOIN 
-        DimCustomers dc ON fs.customer_id = dc.Customer_id
-    GROUP BY 
-        dc.City
-    ORDER BY 
-        SUM((fs.List_Price - fs.Discount) * fs.Quantity) DESC;""")
+    SELECT TOP 10 dc.City, FORMAT(SUM((fs.list_price - (fs.list_price * fs.discount)) * fs.quantity), 'C', 'en-US') AS Total_Discounted_Sales 
+    FROM FactSales fs 
+    JOIN DimCustomers dc ON fs.customer_id = dc.Customer_id 
+    GROUP BY dc.City 
+    ORDER BY SUM((fs.list_price - (fs.list_price * fs.discount)) * fs.quantity) DESC;"""),
+
+    ("Code. Undiscounted Sales by Year", """
+    select  D.[Year] AS Year, SUM(S.[list_price]*S.[quantity]) AS Sales_By_Year 
+    from FactSales S, DimDate D 
+    where S.[Order_Date_Key] = D.[Date_Key] 
+    GROUP BY ROLLUP ( D.[Year]);"""),
+
 ]
-    ("7. )
-
-
-
-
 
 out_file = 'out.txt'
-
 # Execute each query and output results
 for title, query in queries:
     execute_query_and_write_to_file(title, query, out_file, conn_string_pyodbc)

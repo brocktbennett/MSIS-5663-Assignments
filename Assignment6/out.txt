@@ -1,29 +1,5 @@
 
 
- Undiscounted Sales By Year
-
-
- 
-SELECT D.[Year] AS Year, SUM(S.[list_price]*S.[quantity]) AS Sales_By_Year
-FROM FactSales S, DimDate D
-WHERE S.[Order_Date_Key] = D.[Date_Key]
-GROUP BY ROLLUP (D.[Year]);
-
-
-
- +--------+-----------------+
-|   Year |   Sales_By_Year |
-+========+=================+
-|   2016 |     2.64965e+06 |
-+--------+-----------------+
-|   2017 |     3.73511e+06 |
-+--------+-----------------+
-|   2018 |     1.05325e+06 |
-+--------+-----------------+
-|    nan |     7.43801e+06 |
-+--------+-----------------+
-
-
  1. Total Quantity by Brand 'Surly'
 
 
@@ -95,25 +71,16 @@ GROUP BY ROLLUP (D.[Year]);
 
 
  
-    SELECT 
-        COALESCE(dp.Category_name, 'All Categories') AS Category_name, 
-        dp.model_year, 
-        FORMAT(SUM(fs.List_Price * fs.Quantity), 'C', 'en-US') AS Total_Undiscounted_Sales
-    FROM 
-        FactSales fs
-    JOIN 
-        DimProducts dp ON fs.product_id = dp.product_id
-    JOIN 
-        DimDate dd ON fs.Order_Date_Key = dd.Date_Key
-    GROUP BY 
-        dp.Category_name, dp.model_year
+    SELECT COALESCE(dp.Category_name, 'All Categories') AS Category_name, dp.model_year, FORMAT(SUM(fs.List_Price * fs.Quantity), 'C', 'en-US') AS Total_Undiscounted_Sales
+    FROM FactSales fs
+    JOIN DimProducts dp ON fs.product_id = dp.product_id
+    JOIN DimDate dd ON fs.Order_Date_Key = dd.Date_Key
+    GROUP BY dp.Category_name, dp.model_year
     WITH ROLLUP
-    ORDER BY 
-        CASE 
-            WHEN dp.Category_name IS NULL THEN ''
-            ELSE dp.Category_name 
-        END ASC,
-        dp.model_year DESC;
+    ORDER BY CASE 
+    WHEN dp.Category_name IS NULL THEN ''
+    ELSE dp.Category_name 
+    END ASC, dp.model_year DESC;
 
 
  +---------------------+--------------+----------------------------+
@@ -181,21 +148,14 @@ GROUP BY ROLLUP (D.[Year]);
 
 
  
-    SELECT 
-        COALESCE(dp.Category_name, 'All Categories') AS Category_name, 
-        COALESCE(dp.brand_name, 'All Brands') AS Brand_name, 
-        FORMAT(SUM(fs.List_Price * fs.Quantity), 'C', 'en-US') AS Total_Undiscounted_Sales
-    FROM 
-        FactSales fs
-    JOIN 
-        DimProducts dp ON fs.product_id = dp.product_id
+    SELECT COALESCE(dp.Category_name, 'All Categories') AS Category_name, COALESCE(dp.brand_name, 'All Brands') AS Brand_name, FORMAT(SUM(fs.List_Price * fs.Quantity), 'C', 'en-US') AS Total_Undiscounted_Sales
+    FROM FactSales fs
+    JOIN DimProducts dp ON fs.product_id = dp.product_id
     GROUP BY CUBE(dp.Category_name, dp.brand_name)
-    ORDER BY 
-        CASE 
-            WHEN dp.Category_name IS NULL THEN 'AAA' 
-            ELSE dp.Category_name 
-        END ASC,
-        COALESCE(dp.brand_name, 'All Brands') DESC;
+    ORDER BY CASE 
+    WHEN dp.Category_name IS NULL THEN 'AAA' 
+    ELSE dp.Category_name 
+    END ASC, COALESCE(dp.brand_name, 'All Brands') DESC;
 
 
  +---------------------+--------------+----------------------------+
@@ -287,39 +247,56 @@ GROUP BY ROLLUP (D.[Year]);
 
 
  
-    SELECT TOP 10
-        dc.City,
-        FORMAT(SUM((fs.List_Price - fs.Discount) * fs.Quantity), 'C', 'en-US') AS Total_Discounted_Sales
-    FROM 
-        FactSales fs
-    JOIN 
-        DimCustomers dc ON fs.customer_id = dc.Customer_id
-    GROUP BY 
-        dc.City
-    ORDER BY 
-        SUM((fs.List_Price - fs.Discount) * fs.Quantity) DESC;
+    SELECT TOP 10 dc.City, FORMAT(SUM((fs.list_price - (fs.list_price * fs.discount)) * fs.quantity), 'C', 'en-US') AS Total_Discounted_Sales 
+    FROM FactSales fs 
+    JOIN DimCustomers dc ON fs.customer_id = dc.Customer_id 
+    GROUP BY dc.City 
+    ORDER BY SUM((fs.list_price - (fs.list_price * fs.discount)) * fs.quantity) DESC;
 
 
  +----------------+--------------------------+
 | City           | Total_Discounted_Sales   |
 +================+==========================+
-| Mount Vernon   | $117,001.32              |
+| Mount Vernon   | $105,563.33              |
 +----------------+--------------------------+
-| Ballston Spa   | $110,057.46              |
+| Ballston Spa   | $98,619.75               |
 +----------------+--------------------------+
-| Howard Beach   | $104,245.58              |
+| Howard Beach   | $95,328.99               |
 +----------------+--------------------------+
-| Canyon Country | $88,447.03               |
+| Canyon Country | $79,378.56               |
 +----------------+--------------------------+
-| Smithtown      | $85,418.11               |
+| Smithtown      | $77,295.60               |
 +----------------+--------------------------+
-| Harlingen      | $85,280.05               |
+| Harlingen      | $76,869.87               |
 +----------------+--------------------------+
-| Webster        | $80,732.19               |
+| Webster        | $71,361.33               |
 +----------------+--------------------------+
-| San Angelo     | $78,228.37               |
+| San Angelo     | $70,308.05               |
 +----------------+--------------------------+
-| Astoria        | $77,647.40               |
+| Astoria        | $68,860.76               |
 +----------------+--------------------------+
-| Troy           | $74,763.97               |
+| Troy           | $67,607.49               |
 +----------------+--------------------------+
+
+
+ Code. Undiscounted Sales by Year
+
+
+ 
+    select  D.[Year] AS Year, SUM(S.[list_price]*S.[quantity]) AS Sales_By_Year 
+    from FactSales S, DimDate D 
+    where S.[Order_Date_Key] = D.[Date_Key] 
+    GROUP BY ROLLUP ( D.[Year]);
+
+
+ +--------+-----------------+
+|   Year |   Sales_By_Year |
++========+=================+
+|   2016 |     2.64965e+06 |
++--------+-----------------+
+|   2017 |     3.73511e+06 |
++--------+-----------------+
+|   2018 |     1.05325e+06 |
++--------+-----------------+
+|    nan |     7.43801e+06 |
++--------+-----------------+
