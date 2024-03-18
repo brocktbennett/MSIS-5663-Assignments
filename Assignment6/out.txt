@@ -279,6 +279,44 @@
 +----------------+--------------------------+
 
 
+ 7. Comparing Dimensional Databases with Normalized Databases: Use the MyStoreDW (brocben)
+
+
+ 
+    SELECT C.Category_Name as Category, FORMAT(SUM(oi.list_price * oi.quantity), 'C', 'en-US') AS Undiscounted_Sales
+    FROM order_items as oi 
+    JOIN products p ON oi.product_id = p.product_id
+    JOIN categories c ON p.category_id = c.category_id
+    GROUP BY c.category_name
+    UNION ALL 
+    SELECT 'All Categories' AS Category, FORMAT(SUM(oi.list_price * oi.quantity), 'C', 'en-US') AS Undiscounted_Sales
+    FROM order_items oi
+    JOIN products p ON oi.product_id = p.product_id
+    JOIN categories c ON p.category_id = c.category_id
+    ORDER BY Category DESC;
+
+
+ +---------------------+----------------------+
+| Category            | Undiscounted_Sales   |
++=====================+======================+
+| Road Bikes          | $38,699.92           |
++---------------------+----------------------+
+| Mountain Bikes      | $6,207.96            |
++---------------------+----------------------+
+| Electric Bikes      | $4,679.97            |
++---------------------+----------------------+
+| Cyclocross Bicycles | $3,499.99            |
++---------------------+----------------------+
+| Cruisers Bicycles   | $10,842.85           |
++---------------------+----------------------+
+| Comfort Bicycles    | $2,383.95            |
++---------------------+----------------------+
+| Children Bicycles   | $4,069.88            |
++---------------------+----------------------+
+| All Categories      | $70,384.52           |
++---------------------+----------------------+
+
+
  Code. Undiscounted Sales by Year
 
 
